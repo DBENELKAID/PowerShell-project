@@ -249,7 +249,7 @@ $DirPathSF = ${Drive}  + "SuspiciousFile"
             New-Item -ItemType Directory -Path ${DirPathSF}
             Write-Host
         }
-
+###
 # ==================== Do not change these variablese ======================================================
 $DriveLetter = ${Drive}.Substring(0,1)
 $DriveLetter = "Drive" + ${DriveLetter} 
