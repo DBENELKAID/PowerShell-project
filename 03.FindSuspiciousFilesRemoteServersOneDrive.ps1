@@ -6,7 +6,7 @@ Description		:PowerShell script that scans a drive to find malware files listed 
 Model			:One drive - Running on remote machine (Remote-Job) - (Windows Server and Windows Workstation).
 PSVersion	    :Windows PowerShell 4.0 and later, PowerShell Core.
 Author			:Driss BENELKAID
-Mail			:driss.benelkaid@akka.eu - benelkaid.d@gmail.com
+Mail			:benelkaid.driss@outlook.fr - benelkaid.d@gmail.com
 Version			:2.0
 Last modified	:14/03/2022 - 16h00
 Shared script	:https://drive.google.com/drive/folders/1c-os1kTanb5mr_n9GJae7SZ7q5EEeZ3N?usp=sharing
