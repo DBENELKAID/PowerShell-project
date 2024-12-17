@@ -1,9 +1,9 @@
 <#
-Script Name 	:03.FindSuspiciousFilesRemoteServersOneDrive.ps1
+Script Name 	:02.FindSuspiciousFilesAllDrives.ps1
 Description		:PowerShell script that scans a drive to find malware files listed in the list below.
                 :and when a suspicious file is found, it will be noted with the "MD5", SHA1 and SHA256 in a result file "Drive\:SuspiciousFileFound.txt".
 				:the first files listed in this list are recent, some of which were used by russia to attack ukraine in February 23, 2022.
-Model			:One drive - Running on remote machine (Remote-Job) - (Windows Server and Windows Workstation).
+Model			:All drives - Running on local machine (Windows Server and Windows Workstation).
 PSVersion	    :Windows PowerShell 4.0 and later, PowerShell Core.
 Author			:Driss BENELKAID
 Mail			:benelkaid.driss@outlook.fr - benelkaid.d@gmail.com
@@ -14,52 +14,6 @@ Shared script	:https://github.com/DBENELKAID/find-malicious-files.git
 				:It is allowed to modify this script to improve it and share it in order to mitigate cyberattaques.
 #>
 "PowerShell running in version: $($PSVersionTable.PSVersion)."
-
-# ==================== Servers list ========================================================================
-#
-$PathList =  "C:\Scripts\ServersList.txt"
-$Script:ServersList =  Get-Content -Path ${PathList}
-
-# ==================== Ping ================================================================================
-    Write-Host "<<<<<<<<<<<<<<<<<<<< Test-Connection (Ping) >>>>>>>>>>>>>>>>>>>>" -ForegroundColor Cyan
-     
-    function Ping {
- 
-        foreach (${Server} in ${ServersList}) {
-            $Count1 = Test-Connection -ComputerName ${Server} -Quiet -Count 1 -ErrorAction SilentlyContinue
-                if (${Count1} -like $true) {
-                    Write-Host " ${Server} ping Ok [;-) " -ForegroundColor Green
-                }
-                elseIf (${Count1} -like $false) {
-                    $Count2 = Test-Connection -ComputerName ${Server} -Quiet -Count 2 -ErrorAction SilentlyContinue
-                        if (${Count2} -like $true) {
-                            Write-Host " ${Server} ping Ok [;-) " -ForegroundColor Green
-                        }
-                        else {
-                            Write-Host " ${Server} ping nOk [:-( " -ForegroundColor Red
-                        }
-                }
-		} 
-	}
-Ping # function Ping
-
-
-	Write-Host
-	Write-Host "<<<<<<<<<<<<<<<<<<<< Remote jobs run >>>>>>>>>>>>>>>>>>>>" -ForegroundColor Cyan
-#region ==================== Remote jobs run ===============================================================
-
-    foreach ($Server in ${ServersList}) {
-    Start-Sleep 1
-    Write-Host "${Server} " -ForegroundColor Cyan
-    Write-Host
-
-    $JobName = "FindSuspiciousFiles"
-	
-	# Invoke-Command with Remote-Job
-    Invoke-Command -ComputerName ${Server} -AsJob -JobName $JobName -ScriptBlock {
-
-        $COMPUTERNAME  = $Env:COMPUTERNAME
-        ${GetDate} = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
 
 #region list
 # ==================== Indicators of compromise list =======================================================
@@ -232,14 +186,25 @@ $SuspiciousFiles = @(
 # End of list
 
 
-# ==================== variable to change for one drive ====================================================
-$Drive = "C:\" # <<<<<<<<<<<<<<<<<<<<< You can change the letter for other drive >>>>>>>>>>>>>>>>>>>>
-#
+# ==================== Variable of all drives ==============================================================
+$AllDrives = ([System.IO.DriveInfo]::getdrives() | Where-Object {$_.DriveType -like "FIxed"}).Name
+$CountAllDrives = ${AllDrives}.Count
+   
+        if(${CountAllDrives} -eq 1) {
+            Write-Host "This script will scan only $CountAllDrives drive = ${AllDrives}" -ForegroundColor Red
+        }
+        elseIf (${CountAllDrives} -cgt 1){
+            Write-Host "This script will scan $CountAllDrives drives = ${AllDrives}" -ForegroundColor Red
+        }
+        
+		foreach (${Drive} in ${AllDrives}){
+
 
 #region
 $Algorithms = @("MD5","SHA1","SHA256")
+
 # ==========================================================================================================
-        Write-Host "<<<<<<<<<<<<<<<<<<<< Scaning drive ${Drive} on ${COMPUTERNAME} >>>>>>>>>>>>>>>>>>>>" -ForegroundColor Cyan
+        Write-Host "<<<<<<<<<<<<<<<<<<<< Scaning drive ${Drive} >>>>>>>>>>>>>>>>>>>>" -ForegroundColor Cyan
 
 # ==================== Create dir for results and logs =====================================================
 $DirPathSF = ${Drive}  + "SuspiciousFile"
@@ -375,46 +340,6 @@ $ErrorsFile = ${DirPathSF} + "\" + "ErrorsFile" + ${DriveLetter} + ".txt"
 
 
 #endregion
-} 
-# End Invoke-Command
-    ${GetDate} = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
-    Write-Host "${GetDate} Warning: do not close this window, remote job is running !" -ForegroundColor DarkYellow
-}
-#endregion ==================== End Remote jobs run =======================================================
-# End Remote jobs run ($Server in ${ServresList})
-
-
-	Write-Host
-	Write-Host "<<<<<<<<<<<<<<<<<<<< Remote jobs results >>>>>>>>>>>>>>>>>>>>" -ForegroundColor Cyan
-    Write-Host
-#region ==================== Remote jobs results ===========================================================
-
-    $JobName = "FindSuspiciousFiles"
-    
-    $ScannedDrive = "C:\" # You can change the letter for other drive
-    $DirPathSF = $ScannedDrive  + "SuspiciousFile"
-    $OutputFileJobs = $DirPathSF + "\" + "OutputFileJob.txt"
-
-    
-
-    $JobsIds = Get-Job | Where-Object {$_.Name -like ${JobName}} | Select-Object Id
-    $JobsIds | Wait-Job
-
-    $OutPut = @()
-        foreach ($JobId in $JobsIds){
-            Start-Sleep 1
-            $OutPut += $JobId | Receive-Job | Select-Object LastWriteTime,PSComputerName,Name,Mode | Format-Table
-            $JobId | Remove-Job
-        }
-
-    $OutPut | Out-File $OutputFileJobs
-    
-
-    ${GetDate} = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
-    Write-Host
-    Write-Host "                *** ${GetDate} End of execution of remote jobs ***" -ForegroundColor Green
-
-#endregion
+} # End foreach (${Drive} -in ${AllDrives})
 
 # ========================== End of script =================================================================
-

@@ -1,9 +1,9 @@
 <#
-Script Name 	:03.FindSuspiciousFilesRemoteServersOneDrive.ps1
+Script Name 	:04.FindSuspiciousFilesRemoteServersAllDrives.ps1
 Description		:PowerShell script that scans a drive to find malware files listed in the list below.
                 :and when a suspicious file is found, it will be noted with the "MD5", SHA1 and SHA256 in a result file "Drive\:SuspiciousFileFound.txt".
 				:the first files listed in this list are recent, some of which were used by russia to attack ukraine in February 23, 2022.
-Model			:One drive - Running on remote machine (Remote-Job) - (Windows Server and Windows Workstation).
+Model			:All drives - Running on remote machine (Remote-Job) - (Windows Server and Windows Workstation).
 PSVersion	    :Windows PowerShell 4.0 and later, PowerShell Core.
 Author			:Driss BENELKAID
 Mail			:benelkaid.driss@outlook.fr - benelkaid.d@gmail.com
@@ -54,7 +54,7 @@ Ping # function Ping
     Write-Host
 
     $JobName = "FindSuspiciousFiles"
-	
+
 	# Invoke-Command with Remote-Job
     Invoke-Command -ComputerName ${Server} -AsJob -JobName $JobName -ScriptBlock {
 
@@ -232,9 +232,21 @@ $SuspiciousFiles = @(
 # End of list
 
 
-# ==================== variable to change for one drive ====================================================
-$Drive = "C:\" # <<<<<<<<<<<<<<<<<<<<< You can change the letter for other drive >>>>>>>>>>>>>>>>>>>>
-#
+# ==================== Variable of all drives ==============================================================
+$AllDrives = ([System.IO.DriveInfo]::getdrives() | Where-Object {$_.DriveType -like "FIxed"}).Name
+$CountAllDrives = ${AllDrives}.Count
+   
+        if(${CountAllDrives} -eq 1) {
+            Write-Host "***** This script scanned only $CountAllDrives drive on ${COMPUTERNAME} = ${AllDrives} *****" -ForegroundColor Red
+        }
+        elseIf (${CountAllDrives} -cgt 1){
+            Write-Host "***** This script scanned $CountAllDrives drives on ${COMPUTERNAME} = ${AllDrives} *****" -ForegroundColor Red
+        }
+            Write-Host
+        
+        
+		foreach (${Drive} in ${AllDrives}){
+
 
 #region
 $Algorithms = @("MD5","SHA1","SHA256")
@@ -278,7 +290,7 @@ $ErrorsFile = ${DirPathSF} + "\" + "ErrorsFile" + ${DriveLetter} + ".txt"
 # ==================== Create a test file  =================================================================
 # this created file is at the end of the list
 		$TestFilePath = ${DirPathSF} + "\" + "SuspiciousFile.test"
-        
+			
 			if (!(Test-Path -Path ${TestFilePath})){
 				Write-Host "create file $TestFilePath" -ForegroundColor Yellow
 				New-Item -ItemType File -Path ${TestFilePath} -Value "this is not a suspicious file, just a test file"
@@ -345,7 +357,7 @@ $ErrorsFile = ${DirPathSF} + "\" + "ErrorsFile" + ${DriveLetter} + ".txt"
 
                             foreach ($Algorithm in ${Algorithms}){
 
-                                Get-FileHash -Algorithm ${Algorithm} -Path ${file} | Select-Object Path,Algorithm,Hash | Format-List | Write-Output >> ${ResultFile}
+							Get-FileHash -Algorithm ${Algorithm} -Path ${file} | Select-Object Path,Algorithm,Hash | Format-List | Write-Output >> ${ResultFile}
                             }
                     }
                 }
@@ -376,11 +388,13 @@ $ErrorsFile = ${DirPathSF} + "\" + "ErrorsFile" + ${DriveLetter} + ".txt"
 
 #endregion
 } 
+# End foreach (${Drive} -in ${AllDrives})
+} 
 # End Invoke-Command
     ${GetDate} = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
     Write-Host "${GetDate} Warning: do not close this window, remote job is running !" -ForegroundColor DarkYellow
 }
-#endregion ==================== End Remote jobs run =======================================================
+#endregion ==================== End Remote jobs run ============================================================
 # End Remote jobs run ($Server in ${ServresList})
 
 
@@ -417,4 +431,5 @@ $ErrorsFile = ${DirPathSF} + "\" + "ErrorsFile" + ${DriveLetter} + ".txt"
 #endregion
 
 # ========================== End of script =================================================================
+
 
